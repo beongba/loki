@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    volumes:
+      - ./loki-config.yaml:/etc/loki/loki-config.yaml # 로키 설정 파일을 마운트
+    ports:
+      - "3100:3100" # Loki HTTP API 포트
+    command: -config.file=/etc/loki/loki-config.yaml # 설정 파일 경로 지정
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "admin" # Grafana 관리자 비밀번호 설정
+    ports:
+      - "3000:3000" # Grafana 웹 UI 포트
+    depends_on:
+      - loki
+    networks:
+      - monitoring
+
+  log-generator:
+    image: busybox
+    container_name: log-generator
+    command: /bin/sh -c "while true; do echo 'Test log message'; sleep 5; done"
+    networks:
+      - monitoring
+    depends_on:
+      - loki
+    environment:
+      LOKI_URL: http://loki:3100
+
+networks:
+  monitoring:
+    driver: bridge
